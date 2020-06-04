@@ -17,14 +17,22 @@ except:
 class DefaultEncoder(json.JSONEncoder):
     def default(self, obj):
         if WITH_NUMPY:
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+
+            try:
+                if hasattr(obj, 'dtype'):
+                    return obj.item()
+            except:
+                pass
+
             if isinstance(obj, (np.uint64, np.int64)):
                 return str(obj)
-            if isinstance(obj, np.integer):
+            elif isinstance(obj, np.integer):
                 return int(obj)
             elif isinstance(obj, np.floating):
                 return float(obj)
-            elif isinstance(obj, np.ndarray):
-                return obj.tolist()
+
 
         return super().default(obj)
 
