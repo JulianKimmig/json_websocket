@@ -90,7 +90,9 @@ class OutMessage(Promise):
 
 class AbstractJsonWebsocket:
 
-    def __init__(self):
+    def __init__(self,default_cls=DefaultEncoder):
+
+        self._default_cls = default_cls
         self.message_types = {}
         self.open = False
         self.answers_pending = {}
@@ -117,7 +119,9 @@ class AbstractJsonWebsocket:
         return message
 
     def send_type_message(self, type, data, expect_response=False,
-                          timeout=-1, resends=0,target=None, cls=DefaultEncoder):
+                          timeout=-1, resends=0,target=None, cls=None):
+        if cls is None:
+            cls = self._default_cls
         if self.send_function is None:
             raise ValueError("please set send_function before you send something")
         message = self.get_type_message(type=type, data=data)
