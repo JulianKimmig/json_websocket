@@ -33,7 +33,6 @@ class DefaultEncoder(json.JSONEncoder):
             elif isinstance(obj, np.floating):
                 return float(obj)
 
-
         return super().default(obj)
 
 
@@ -56,7 +55,7 @@ class Promise():
         if self.reject_func:
             self.reject_func(*args, **kwargs)
         else:
-            print("REJECT:",args,kwargs)
+            print("REJECT:", args, kwargs)
         self.isPending = False
         self.isRejected = True
         self.isFulfilled = False
@@ -78,7 +77,7 @@ class OutMessage(Promise):
         self.resends = resends
         self.timeout = timeout
         self.message_str = message_str
-        self.reject_func = lambda error:print("REJECT:",self.message_str,"because of",error)
+        self.reject_func = lambda error: print("REJECT:", self.message_str, "because of", error)
 
     def try_send_out(self, send_function):
         def _send_out():
@@ -98,14 +97,14 @@ class OutMessage(Promise):
 
 class AbstractJsonWebsocket:
 
-    def __init__(self,default_cls=DefaultEncoder):
+    def __init__(self, default_cls=DefaultEncoder):
 
         self._default_cls = default_cls
         self.message_types = {}
         self.open = False
         self.answers_pending = {}
         self.ANSWER_TIMEOUT = 5000
-        self.send_function=None
+        self.send_function = None
         self.add_type_function("error", self.receive_error_message)
         self.add_type_function("ans", self.receive_ans)
 
@@ -113,7 +112,7 @@ class AbstractJsonWebsocket:
         print(self, data["data"])
 
     def receive_ans(self, data):
-        ans=data["data"]
+        ans = data["data"]
         if ans['id'] in self.answers_pending:
             out_message = self.answers_pending[ans['id']]
             if ans["success"]:
@@ -127,7 +126,7 @@ class AbstractJsonWebsocket:
         return message
 
     def send_type_message(self, type, data, expect_response=False,
-                          timeout=-1, resends=0,target=None, cls=None):
+                          timeout=-1, resends=0, target=None, cls=None, source=[]):
         if cls is None:
             cls = self._default_cls
         if self.send_function is None:
@@ -136,20 +135,21 @@ class AbstractJsonWebsocket:
         if expect_response:
             message['id'] = ''.join([random.choice(string.ascii_letters) for i in range(5)]) + str(int(time() * 1000))
         if target is not None:
-            message["target"]=target
+            message["target"] = target
+            message['source'] = source
         message_str = json.dumps(message, cls=cls)
-
-        out_message = OutMessage(message_str, resends=resends, timeout=(timeout if timeout > 0 else self.ANSWER_TIMEOUT)/1000)
+        out_message = OutMessage(message_str, resends=resends,
+                                 timeout=(timeout if timeout > 0 else self.ANSWER_TIMEOUT) / 1000)
 
         if expect_response:
-            self.answers_pending[message['id']]=out_message
+            self.answers_pending[message['id']] = out_message
         else:
             out_message.fulfill()
 
         out_message.try_send_out(self.send_function)
         return out_message
 
-    def add_type_function(self,name,message_type):
+    def add_type_function(self, name, message_type):
         self.message_types[name] = message_type
 
     def on_message(self, data):
@@ -162,13 +162,14 @@ class AbstractJsonWebsocket:
             ans = str(e)
             succ = False
         if "id" in data:
-            return self.send_answer_message(ans, id=data["id"], success=succ,target=(data['source'][0] if 'source' in data else None))
+            return self.send_answer_message(ans, id=data["id"], success=succ,
+                                            target=(data['source'][0] if 'source' in data else None))
 
     def error_message(self, message):
         return self.message_types["error"].encode(message=message)
 
-    def send_answer_message(self, ans, id, success=True,**kwargs):
-        return self.send_type_message("ans",data={'id':id, 'success':success,"data":ans},**kwargs)
+    def send_answer_message(self, ans, id, success=True, **kwargs):
+        return self.send_type_message("ans", data={'id': id, 'success': success, "data": ans}, **kwargs)
 
     def on_open(self):
         self.open = True
@@ -182,7 +183,6 @@ class AbstractJsonWebsocket:
     def on_error(self, e):
         self.open = False
         print("Socket error:", e)
-
 
     @classmethod
     def generate_static_files(cls, direction):
