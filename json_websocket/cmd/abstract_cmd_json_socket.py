@@ -18,7 +18,7 @@ def merge(new_values, default_values):
 
 
 class WebsocketCommand():
-    def __init__(self, name, func, raw=False):
+    def __init__(self, name, func, raw=False,callback=None):
         self.raw = raw
         self.func = func
         self.name = name
@@ -31,6 +31,8 @@ class WebsocketCommand():
             self.func_kwargs = dict(zip(args[-len_defaults:], defaults))
         else:
             self.func_kwargs = {}
+
+        self.callback=callback
 
         if kwonlydefaults is not None:
             self.func_kwargs.update(kwonlydefaults)
@@ -49,7 +51,11 @@ class WebsocketCommand():
         if not self.func_with_kwargs:
             kwargs = {k: v for k, v in kwargs.items() if k in self.func_args + list(self.func_kwargs.keys())}
 
-        return self.func(**kwargs)
+        res = self.func(**kwargs)
+        if self.callback is not None:
+            res = self.callback(res)
+
+        return res
 
     def info(self):
         return {'args': self.func_args,

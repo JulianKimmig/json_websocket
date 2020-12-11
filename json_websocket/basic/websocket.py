@@ -25,7 +25,6 @@ def realize_abstract_websocket(abstract_json_websocket, url, header=None,
                              on_close=self.on_close)
 
         def on_message(self, data):
-            print(data)
             return asbws.on_message(data)
 
         def on_open(self):
