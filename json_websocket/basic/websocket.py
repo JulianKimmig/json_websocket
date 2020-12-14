@@ -11,7 +11,6 @@ SLEEP_TIME = 0.1
 
 def realize_abstract_websocket(abstract_json_websocket, url, header=None,
                                reconnect_time=5,
-                               use_asyncio=False,
                                *args, **kwargs
                                ):
     asbws = abstract_json_websocket(*args, **kwargs)
@@ -90,11 +89,10 @@ def realize_abstract_websocket(abstract_json_websocket, url, header=None,
 
     asbws.ws = _WS(url=url)
 
-    asbws.use_asyncio = use_asyncio
     asbws.reconnect_time = reconnect_time
     asbws.asycio_loop = None
     asbws.running = False
     return asbws
 
 
-websocket_JsonWebsocket = lambda *args, **kwargs: realize_abstract_websocket(*args, **kwargs)
+websocket_JsonWebsocket = lambda *args, **kwargs: realize_abstract_websocket(AbstractJsonWebsocket,*args, **kwargs)

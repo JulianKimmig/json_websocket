@@ -1,6 +1,6 @@
 import inspect
 
-from ..basic.abstract_json_socket import AbstractJsonWebsocket
+from ..basic.abstract_json_socket import AbstractJsonWebsocket, assure_coro
 
 
 def merge(new_values, default_values):
@@ -66,18 +66,28 @@ class WebsocketCommand():
 
 
 class AbstractCmdJsonWebsocket(AbstractJsonWebsocket):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
         self._available_cmds = {}
-        self.add_type_function("cmd", self.run_cmd)
+        if self.use_asyncio:
+            self.add_type_function("cmd", self.async_run_cmd)
+        else:
+            self.add_type_function("cmd", self.run_cmd)
 
-    def run_cmd(self, base_data):
+    def _run_cmd(self,base_data):
         data = base_data["data"]
+        if 'cmd' not in data:
+            raise ValueError("no cmd in data")
         f = self.get_cmd(data['cmd'])
         if f is None:
             raise AttributeError("cmd '"+str(data['cmd']) + "' not found")
+        return f
 
-        return f(self, base_data)
+    async def async_run_cmd(self, base_data):
+        return await assure_coro(self._run_cmd(base_data))(self, base_data)
+
+    def run_cmd(self, base_data):
+        return self._run_cmd(base_data)(self, base_data)
 
     def get_cmd(self, cmd):
         return self._available_cmds.get(cmd)
